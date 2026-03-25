@@ -1,0 +1,756 @@
+Project Name: LSB Stegnography
+Name: Ananya Gobbur 
+Date of Submission: 12th November 2025
+*********************************************************************
+Description of the Project: 
+
+This project demonstrates image steganography using the Least Significant Bit (LSB) technique in 
+C language. It enables users to hide and retrieve secret data within BMP images without altering 
+their visible quality. The system includes both encoding and decoding operations, validated through 
+command-line arguments for robustness. A unique magic string (#*) ensures secure identification of 
+stego images during decoding. The project effectively showcases key programming concepts such as 
+file handling, bit manipulation, and data security, providing a practical understanding of how 
+confidential information can be embedded within digital media for secure communication.
+
+***********************************************************************************************
+
+Sample Input for Encoding 
+ananya@ANANYAGOBBUR:/mnt/g/EMERTXE/Steganography/4-SkeletonCode$ gcc *.c
+ananya@ANANYAGOBBUR:/mnt/g/EMERTXE/Steganography/4-SkeletonCode$ ./a.out -e beautiful.bmp secret.txt newimg.bmp
+
+Sample output for Encoding 
+
+INFO: Starting Encoding Process...
+INFO: ## Encoding Procedure Started ##
+INFO: Opening required files
+INFO: Opened beautiful.bmp
+INFO: Opened secret.txt
+INFO: Opened newimg.bmp
+INFO: Done
+
+INFO: Checking secret.txt file size
+INFO: Done. File not empty
+INFO: Checking if beautiful.bmp has enough space for secret.txt
+width = 1024
+height = 768
+INFO: Done. Capacity OK
+INFO: Copying BMP Header
+INFO: Header Copied
+INFO: Encoding Magic String
+INFO: Magic String Encoded
+INFO: Encoding Secret File Extension
+INFO: Extension Encoded
+INFO: Encoding Secret File Size
+INFO: Size Encoded
+INFO: Encoding Secret File Data
+INFO: Data Encoded
+INFO: Copying Remaining Image Data
+INFO: Remaining Data Copied
+INFO: ## Encoding Done Successfully ##
+INFO: Encoding done successfully!
+*****************************************************************8
+Sample input for Decoding
+ananya@ANANYAGOBBUR:/mnt/g/EMERTXE/Steganography/4-SkeletonCode$ ./a.out -d newimg.bmp  newimg.txt
+
+Sample output for Decoding
+
+INFO: Starting Decoding Process...
+INFO: ## Decoding Procedure Started ##
+INFO: Opening required files
+INFO: Opened newimg.bmp
+width = 1024
+height = 768
+INFO: Decoding Magic String Signature
+INFO: Done
+INFO: Decoding Output File Extension
+INFO: Done
+INFO: Decoding .txt File Size
+INFO: Done
+INFO: Decoding .txt File Data
+INFO: Output File not mentioned. Creating newimg.txt as default
+INFO: Opened newimg.txt
+INFO: Done
+INFO: Done
+INFO: ## Decoding Done Successfully ##
+INFO: Decoding done successfully!
+*********************************************************
+
+ENCODING MODULE OVERVIEW  encode.c file
+
+Importance:
+Handles the process of concealing a secret file within a BMP image using LSB encoding.
+Maintains the original image structure while embedding secret data securely.
+Provides modular steps for validation, encoding, and final output creation.
+
+Algorithm:
+Validate command-line inputs and open all required files.
+Embed metadata and file contents into the image’s pixel bytes.
+Copy unused bytes to the output file and close all opened streams.
+
+Name of the function used: get_image_size_for_bmp
+
+Importance:
+Determines the total pixel data area available for hiding information.
+Uses image width and height from the BMP header to compute capacity.
+Ensures correct calculation of available bits for encoding.
+
+Algorithm:
+Move to byte 18 in the BMP header to read width and height.
+Fetch 4 bytes each for width and height values.
+Multiply width × height × 3 to obtain total image size.
+
+Name of the function used: open_files
+
+Importance:
+Opens all files necessary for encoding operation.
+Ensures read/write access for image and secret files before processing.
+Displays detailed error messages when file access fails.
+
+Algorithm:
+Open source image in read-binary mode.
+Open secret file in read-binary mode.
+Create a new stego image in write-binary mode.
+
+Name of the function used: read_and_validate_encode_args
+
+Importance:
+Verifies correctness of filenames and their extensions before encoding.
+Prevents invalid or missing arguments that could interrupt the process.
+Automatically creates a default output file when not specified.
+
+Algorithm:
+Check if image ends with .bmp and secret file has a valid format.
+Validate extensions like .txt, .c, .sh, or .h.
+Assign default output filename if user doesn’t provide one.
+
+Name of the function used: check_capacity
+
+Importance:
+Confirms whether the cover image can store the entire secret file.
+Prevents overflow by comparing image capacity with required bits.
+Maintains encoding integrity by ensuring enough space is available.
+
+Algorithm:
+Calculate total image capacity using width and height.
+Estimate number of bits needed for the secret and metadata.
+Return success only if image capacity exceeds requirement.
+
+Name of the function used: copy_bmp_header
+
+Importance:
+Preserves the BMP image structure during the encoding process.
+Ensures header information like dimensions remains unchanged.
+Serves as a base before data embedding begins.
+
+Algorithm:
+Move to start of the image file.
+Read the first 54 bytes (BMP header).
+Write these bytes unchanged into the output stego image.
+
+Name of the function used: encode_byte_to_lsb
+
+Importance:
+Core logic for hiding secret bits inside image pixels.
+Uses the least significant bit of each image byte to store data.
+Guarantees minimal visual distortion in the encoded image.
+
+Algorithm:
+Extract each bit of the secret byte using bit-shifting.
+Clear the LSB of the image byte and insert the data bit.
+Repeat for all 8 bits to encode one full byte.
+
+Name of the function used: encode_magic_string
+
+Importance:
+Inserts a predefined pattern to mark an image as stego.
+Acts as an identifier during decoding to verify validity.
+Provides the first level of validation before extraction.
+
+Algorithm:
+Read 8 bytes from the source image for each character.
+Embed every bit of the magic string using the LSB method.
+Write the modified bytes into the stego image.
+
+Name of the function used: encode_secret_file_extn_size
+
+Importance:
+Stores the length of the secret file’s extension inside the image.
+Helps the decoder identify how many bytes to read for extension.
+Ensures accurate file type reconstruction during decoding.
+
+Algorithm:
+Read 32 bytes from the image for storing the size.
+Replace each LSB with bits representing the extension length.
+Write the modified bytes to the output file.
+
+Name of the function used: encode_secret_file_extn
+
+Importance:
+Embeds the actual file extension (for example .txt or .c) into the image.
+Ensures correct file type restoration during decoding.
+Keeps metadata hidden yet retrievable.
+
+Algorithm:
+For every character in the extension, read 8 image bytes.
+Replace each LSB with bits of the character.
+Write modified bytes to the output stego image.
+
+Name of the function used: encode_secret_file_size
+
+Importance:
+Saves the total size of the secret file for decoding reference.
+Enables precise extraction by informing the decoder about data length.
+Avoids reading extra or insufficient bytes during retrieval.
+
+Algorithm:
+Read 32 bytes from the source image.
+Store each bit of the file size into the LSBs of those bytes.
+Write the modified bytes to the stego image.
+
+Name of the function used: encode_secret_file_data
+
+Importance:
+Contains the main logic for hiding the secret file’s content.
+Encodes each byte of the secret file into 8 image bytes.
+Ensures complete concealment of text or binary data.
+
+Algorithm:
+Read a byte from the secret file.
+Embed its bits into 8 bytes of the image using LSB.
+Repeat until the full file is encoded.
+
+Name of the function used: copy_remaining_img_data
+
+Importance:
+Preserves the original pixels not used for encoding.
+Prevents data corruption by copying leftover bytes as-is.
+Maintains image completeness after encoding is finished.
+
+Algorithm:
+Read remaining bytes from the source image.
+Write them directly to the stego image.
+Continue until the end of file is reached.
+
+Name of the function used: do_encoding
+
+Importance:
+Acts as the main controller for the entire encoding sequence.
+Manages file handling, size calculation, and all embedding operations.
+Displays informative logs for each phase of encoding.
+
+Algorithm:
+Open all files and calculate secret file size.
+Encode metadata (magic string, extension, size) followed by data.
+Copy leftover image data and close all files.
+
+****************************************************************************
+
+ENCODING MODULE OVERVIEW for file encode.h
+
+Importance:
+Handles embedding a secret file into a BMP image using least-significant-bit substitution.
+Keeps the original image structure intact while storing metadata and content.
+Offers a stepwise, reusable set of functions to perform safe encoding and produce a stego image.
+
+Algorithm:
+Validate inputs and open source, secret, and output files.
+Embed a magic signature, file extension info, file size, and file bytes into image LSBs.
+Copy remaining image bytes and close all files when done.
+
+Name of the function used: check_operation_type
+
+Importance:
+Determines whether the program should run encode or decode flows.
+Prevents incorrect command usage by identifying supported flags.
+Acts as the first decision point in main control logic.
+
+Algorithm:
+Inspect the command-line flag at argv[1].
+Compare it against supported options like "-e" and "-d".
+Return the corresponding operation type enum.
+
+Name of the function used: read_and_validate_encode_args
+
+Importance:
+Ensures input filenames and extensions are correct before encoding starts.
+Prevents runtime errors by checking argument presence and formats.
+Establishes default output names when the user omits them.
+
+Algorithm:
+Verify presence of source image and secret file arguments.
+Check that source ends with .bmp and secret has an allowed extension.
+Set the stego output filename or assign a default if none provided.
+
+Name of the function used: do_encoding
+
+Importance:
+Coordinates the full embedding process from start to finish.
+Calls helper functions to handle header copying, metadata, and data embedding.
+Reports final status and writes the completed stego image.
+
+Algorithm:
+Open files, compute secret file size, and check capacity.
+Encode magic string, extension, size, and file bytes in order.
+Copy remaining image data and close all file streams.
+
+Name of the function used: open_files
+
+Importance:
+Opens source image, secret file, and output stego image with correct modes.
+Verifies read/write access early to avoid mid-process failures.
+Centralizes file handling so other functions assume valid streams.
+
+Algorithm:
+Open source image in read-binary mode.
+Open secret file in read-binary mode.
+Create or open the stego image in write-binary mode.
+
+Name of the function used: check_capacity
+
+Importance:
+Prevents attempting to embed more data than the image can hold.
+Protects against overflow and corrupted output files.
+Ensures the encoding will succeed before modifying the image.
+
+Algorithm:
+Calculate total image capacity using header width and height.
+Estimate bits required for magic string, metadata, and file content.
+Return success only if capacity exceeds required bits.
+
+Name of the function used: get_image_size_for_bmp
+
+Importance:
+Computes the amount of pixel data available for embedding.
+Relies on BMP header fields to determine width and height.
+Used by capacity checks and for planning reads/writes.
+
+Algorithm:
+Seek to the BMP header offset that stores width and height.
+Read width and height values (4 bytes each).
+Return width × height × 3 to represent RGB bytes.
+
+Name of the function used: get_file_size
+
+Importance:
+Obtains the size of the secret file to be embedded.
+Helps determine how many bytes need to be encoded.
+Used for capacity calculations and writing size metadata.
+
+Algorithm:
+Seek to the end of the secret file to get its length.
+Read the file position indicator via ftell or similar.
+Return the computed size and rewind to file start.
+
+Name of the function used: copy_bmp_header
+
+Importance:
+Preserves essential BMP header information unchanged in the stego file.
+Prevents image corruption by maintaining format metadata.
+Provides the correct starting point for embedding data after the header.
+
+Algorithm:
+Rewind the source image to the beginning.
+Read the first 54 bytes containing BMP header fields.
+Write those 54 bytes directly to the output stego image.
+
+Name of the function used: encode_magic_string
+
+Importance:
+Writes a recognizable signature into the image to mark it as encoded.
+Enables the decoder to quickly validate whether a file holds hidden data.
+Serves as the first metadata element embedded after the header.
+
+Algorithm:
+For each character of the magic string, read 8 image bytes.
+Replace the LSBs of those bytes with bits of the character.
+Write the modified bytes into the stego image sequentially.
+
+Name of the function used: encode_secret_file_extn
+
+Importance:
+Stores the secret file’s extension so the decoded file can be saved with the correct type.
+Keeps metadata retrievable and associated with embedded content.
+Helps the decoder reconstruct the original filename extension.
+
+Algorithm:
+Iterate over each character of the extension string.
+For each character, read 8 image bytes and embed the character bits.
+Write the modified bytes into the stego image.
+
+Name of the function used: encode_secret_file_size
+
+Importance:
+Records how many bytes of actual secret data are embedded.
+Allows the decoder to know exactly how many bytes to extract.
+Prevents over-reading or truncation during recovery.
+
+Algorithm:
+Read 32 image bytes reserved for storing size information.
+Replace each LSB with a corresponding bit from the file size integer.
+Write the modified bytes into the stego image.
+
+Name of the function used: encode_secret_file_data
+
+Importance:
+Performs the actual embedding of the secret file’s content into image pixels.
+Ensures the entire file content is concealed in a recoverable form.
+Implements the core LSB substitution to hide bytes with minimal distortion.
+
+Algorithm:
+Read one byte from the secret file at a time.
+For each byte, read 8 image bytes and replace their LSBs with the byte’s bits.
+Write the modified blocks to the output until the entire file is embedded.
+
+Name of the function used: encode_data_to_image
+
+Importance:
+Provides a generic routine to embed arbitrary data blocks into the image using LSBs.
+Encapsulates repetitive encoding steps for reuse by other helpers.
+Simplifies higher-level logic by handling the low-level byte substitutions.
+
+Algorithm:
+Accept a data buffer and its size to encode.
+For each data byte, read the required image bytes and set their LSBs.
+Write modified bytes out to the stego image as encoding proceeds.
+
+Name of the function used: encode_byte_to_lsb
+
+Importance:
+Low-level helper that places one data byte into eight image bytes.
+Ensures consistent bit ordering and correct LSB replacement.
+Central to maintaining encoding correctness across functions.
+
+Algorithm:
+Extract bits from the data byte using bit shifts.
+Clear the LSB of each target image byte and set it to the data bit.
+Repeat for all eight bits to complete one encoded byte.
+
+Name of the function used: copy_remaining_img_data
+
+Importance:
+Transfers any leftover image bytes untouched after embedding finishes.
+Preserves the rest of the image so only intended pixels are altered.
+Completes the output file so it remains a valid BMP.
+
+Algorithm:
+Read chunks of remaining bytes from the source image.
+Write those chunks directly to the stego image without modification.
+Continue until end of source file is reached.
+
+ *********************************************************
+
+MODULE CONTROLLER OVERVIEW for file test_encode.h
+
+Importance:
+Coordinates the overall program flow for both encoding and decoding.
+Validates inputs and delegates work to the appropriate routines.
+Provides user feedback and exit codes based on success or failure.
+
+Algorithm:
+Verify that the minimum command-line arguments are present.
+Decide operation mode (encode or decode) based on the flag.
+Invoke the corresponding validation and processing functions, then report results.
+
+Name of the function used: main
+
+Importance:
+Serves as the program’s entry point and central orchestrator.
+Initializes data structures for either encoding or decoding.
+Handles top-level error handling and user messages.
+
+Algorithm:
+Check argc for required arguments and print usage when missing.
+Compare argv[1] to "-e" or "-d" to select the workflow.
+Call read-and-validate, then call do_encoding or do_decoding, and exit with appropriate status.
+
+Name of the function used: operation type check
+
+Importance:
+Determines which high-level path the program should take.
+Prevents accidental invocation of the wrong routine or invalid flags.
+Acts as a guard against unsupported command usage.
+
+Algorithm:
+Inspect the first flag supplied by the user (argv[1]).
+Match it against accepted options like "-e" and "-d".
+Return or trigger the corresponding encode or decode sequence.
+
+***********************************************************
+
+DECODE MODULE OVERVIEW - decode.h file
+
+Importance:
+Responsible for extracting hidden data from a stego image that was previously encoded using the LSB technique.
+Retrieves secret information such as magic string, file extension, file size, and content from the modified BMP file.
+Ensures accurate reconstruction of the original secret file without altering the image integrity.
+
+Algorithm:
+Validate the provided arguments and open the stego image for reading.
+Verify the presence of the magic string to confirm it is a valid stego image.
+Decode the file extension, size, and embedded data, then save it as an output file.
+
+Name of the function used: read_and_validate_decode_args
+
+Importance:
+Checks if the provided command-line arguments are valid for decoding.
+Ensures the input file has a proper .bmp format and output file is correctly named.
+Prevents decoding errors by validating paths before starting the extraction process.
+
+Algorithm:
+Check if the stego image argument exists and ends with .bmp.
+If output file is not specified, assign a default name.
+Return success only when both arguments are valid.
+
+Name of the function used: open_files_decode
+
+Importance:
+Opens the necessary files for the decoding process.
+Establishes read access for the stego image and prepares output file creation.
+Ensures file streams are successfully opened before data extraction begins.
+
+Algorithm:
+Open the stego image file in read-binary mode.
+Check if the file pointer is valid and accessible.
+Return success when the file is successfully opened.
+
+Name of the function used: do_decoding
+
+Importance:
+Acts as the main controller for the entire decoding procedure.
+Manages reading, verifying, and reconstructing the secret file.
+Provides output and confirmation after successful decoding.
+
+Algorithm:
+Open the stego image file and verify the magic string.
+Decode file extension, size, and data sequentially.
+Write the decoded data into the output file and close all opened streams.
+
+Name of the function used: get_image_size_for_bmp
+
+Importance:
+Retrieves total image size to determine decoding capacity.
+Uses header information to calculate width and height of the BMP.
+Helps in estimating the amount of data that can be processed safely.
+
+Algorithm:
+Seek to byte offset 18 in the BMP header.
+Read width and height values stored in the file.
+Return the product of width, height, and 3 bytes per pixel.
+
+Name of the function used: decode_magic_string
+
+Importance:
+Verifies the magic string embedded during encoding to confirm authenticity.
+Ensures the image actually contains hidden data before proceeding further.
+Acts as an initial validation step in the decoding process.
+
+Algorithm:
+Move the file pointer to position after the BMP header (54 bytes).
+Read 8 bytes at a time and reconstruct each character of the magic string.
+Compare decoded characters with the predefined string and validate the result.
+
+Name of the function used: decode_secret_file_extn_size
+
+Importance:
+Finds the length of the secret file’s extension encoded inside the image.
+Determines how many bytes need to be read to retrieve the extension.
+Helps in correctly reconstructing the output file type.
+
+Algorithm:
+Read 32 bits from the image.
+Extract each bit from the LSB of the image bytes to rebuild the integer value.
+Return the integer representing the extension length.
+
+Name of the function used: decode_secret_file_extn
+
+Importance:
+Extracts the file extension that was hidden during encoding.
+Assists in saving the decoded file with its proper type.
+Completes the metadata reconstruction phase.
+
+Algorithm:
+Read 8 bytes for each character of the file extension.
+Rebuild each character using LSB bits from those bytes.
+Store the reconstructed string as the file extension.
+
+Name of the function used: decode_secret_file_size
+
+Importance:
+Retrieves the total size of the secret file stored inside the image.
+Ensures only the intended number of bytes are read during decoding.
+Prevents reading beyond the embedded data area.
+
+Algorithm:
+Read 32 bits from the image file.
+Combine bits extracted from LSBs to reconstruct the integer value.
+Return the decoded file size.
+
+Name of the function used: decode_secret_file_data
+
+Importance:
+Extracts the actual hidden content of the secret file from the stego image.
+Writes the reconstructed data into a new output file.
+Ensures lossless recovery of the original secret content.
+
+Algorithm:
+Read 8 bytes from the stego image for every character.
+Extract each bit from the LSBs and rebuild the original byte.
+Write every decoded byte sequentially into the output file.
+
+Name of the function used: decode_byte_from_lsb
+
+Importance:
+Responsible for converting 8 bits extracted from image data into one character.
+Used as a helper function to reconstruct bytes of the hidden message.
+Simplifies the decoding logic for reusability across multiple steps.
+
+Algorithm:
+Initialize a data variable as zero.
+Iterate through each of the 8 bits and shift them left one by one.
+Combine the bits using bitwise OR operations to form a byte.
+
+Name of the function used: decode_int_from_lsb
+
+Importance:
+Used to reconstruct integer values from 32 LSB bits of image data.
+Assists in decoding both file size and extension size accurately.
+Provides essential numeric data for further decoding operations.
+
+Algorithm:
+Read 32 bytes from the image file.
+Extract and shift each LSB bit to build the final integer.
+Return the reconstructed integer value.
+
+************************************************************
+
+DECODING MODULE OVERVIEW for file decode.c
+
+Importance:
+Responsible for extracting a hidden file from a BMP image encoded with LSB technique.
+Reconstructs metadata and content so the original secret file is recovered intact.
+Provides a controlled sequence of validation, extraction, and file writing.
+
+Algorithm:
+Validate inputs and open the stego image for reading.
+Verify the embedded magic string, then read extension, size, and data.
+Write the recovered bytes into an output file and close all streams.
+
+Name of the function used: read_and_validate_decode_args
+
+Importance:
+Ensures correct command-line arguments are provided for decoding.
+Prevents invalid filenames or missing parameters from causing errors.
+Sets a sensible default output name when none is supplied.
+
+Algorithm:
+Check that the stego image argument exists and has a .bmp extension.
+If an output name is provided, validate it and prevent multiple extensions.
+Assign a default output name when the user does not specify one.
+
+Name of the function used: open_files_decode
+
+Importance:
+Opens the stego image in the correct mode for safe reading.
+Confirms the file is present and accessible before extraction begins.
+Provides early failure feedback if the file cannot be opened.
+
+Algorithm:
+Attempt to open the stego image file in read-binary mode.
+Verify the returned file pointer is valid.
+Return success only if the file was opened successfully.
+
+Name of the function used: decode_byte_from_lsb
+
+Importance:
+Converts eight LSB bits from image bytes into a single data byte.
+Encapsulates the low-level bit-reconstruction logic for reuse.
+Simplifies higher-level decoding steps by returning a ready byte.
+
+Algorithm:
+Initialize a byte accumulator to zero.
+Iterate over 8 image bytes, shifting left and OR-ing each LSB.
+Return the assembled byte.
+
+Name of the function used: decode_int_from_lsb
+
+Importance:
+Reconstructs 32-bit integer values embedded in the image (e.g., sizes).
+Used for decoding both extension length and file size reliably.
+Provides numeric values needed to guide subsequent reads.
+
+Algorithm:
+Read 32 image bytes from the current file position.
+Extract each LSB and shift/combine them into an integer.
+Return the resulting integer value.
+
+Name of the function used: decode_magic_string
+
+Importance:
+Validates that the image contains hidden data by checking a known signature.
+Prevents accidental decoding of non-stego images.
+Acts as the first line of defense before any extraction.
+
+Algorithm:
+Seek past the BMP header to the embedding start point.
+Read and decode characters from image bytes using the LSB routine.
+Compare the reconstructed string with the expected magic string.
+
+Name of the function used: decode_secret_file_extn_size
+
+Importance:
+Determines how many characters make up the embedded file extension.
+Directs the decoder on how many bytes to read next for the extension.
+Ensures the output file gets the correct type suffix.
+
+Algorithm:
+Invoke the integer-decoding routine to read 32 bits.
+Interpret the result as the extension length.
+Return this length for use in the next step.
+
+Name of the function used: decode_secret_file_extn
+
+Importance:
+Reconstructs the secret file’s extension so the output file has the right type.
+Restores metadata needed to save the decoded content correctly.
+Bridges metadata decoding with actual data extraction.
+
+Algorithm:
+For each character position in the extension, read 8 image bytes.
+Use the byte-decoding routine to form each character.
+Store characters into the extension buffer and terminate the string.
+
+Name of the function used: decode_secret_file_size
+
+Importance:
+Retrieves the number of bytes that were embedded for the secret file.
+Prevents over-reading and ensures precise data extraction.
+Guides the loop that reconstructs the secret file content.
+
+Algorithm:
+Call the 32-bit integer decoder to read the file size.
+Return the decoded size as the count of bytes to extract.
+Use this size to control the data-decoding loop.
+
+Name of the function used: decode_secret_file_data
+
+Importance:
+Performs the main task of reconstructing and saving the hidden content.
+Creates the output file with the correct extension and writes recovered bytes.
+Ensures the recovered file matches the original secret in length and content.
+
+Algorithm:
+Form the final output filename by combining base name and extension.
+Open the output file for writing and check accessibility.
+Read image bytes in groups, decode each secret byte, and write sequentially until the declared size is written.
+
+Name of the function used: do_decoding
+
+Importance:
+Coordinates the full decoding workflow from validation to final output.
+Calls each helper in the right order and reports progress and errors.
+Provides a single entry point to perform complete extraction.
+
+Algorithm:
+Open the stego image and confirm the magic string is present.
+Decode extension length, extension, file size, then the file data.
+Close files and print completion status when decoding finishes.
